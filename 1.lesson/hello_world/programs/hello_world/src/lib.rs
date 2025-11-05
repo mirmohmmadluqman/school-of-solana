@@ -1,36 +1,106 @@
-use anchor_lang::prelude::*;
+// ============================================
+// STEP 1: Define the Trait (Contract)
+// ============================================
+// This is like a "rule" that says:
+// "Any type with Summary MUST have a summarize function"
 
-declare_id!("FZqjVHLRcdVJtU3uNcQSDt52Ao1uR9eTf7aDkY9oyJV3");
+trait Summary {
+    fn summarize(&self) -> String;
+    // ↑
+    // - fn = function
+    // - summarize = function name
+    // - &self = reference to the instance
+    // - -> String = returns a String
+    // - ; = no implementation here (just the signature)
+}
 
-#[program]
-pub mod hello_world {
-    use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        let hello_world_account = &mut ctx.accounts.hello_world_account;
-        hello_world_account.greeting = "Hello World".to_string();
-        Ok(())
+// ============================================
+// STEP 2: Define a Struct (Data Type)
+// ============================================
+// This is like a blueprint for data
+
+struct NewsArticle {
+    headline: String,
+    content: String,
+}
+
+struct Tweet {
+    username: String,
+    message: String,
+}
+
+
+// ============================================
+// STEP 3: Implement the Trait for NewsArticle
+// ============================================
+// "NewsArticle now has the Summary trait"
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        // format! creates a String
+        // {} gets replaced by the values
+        // No semicolon = automatic return
+        format!("{} - {}", self.headline, self.content)
     }
 }
 
-#[derive(Accounts)]
-pub struct Initialize<'info> {
-    #[account(mut)]
-    pub signer: Signer<'info>,
-    /// TIP: space = account discriminator + HelloWorldAccount::INIT_SPACE
-    /// Use InitSpace macro to calculate the space instead of doing it manually
-    #[account(
-        init,
-        payer = signer,
-        space = 8 + HelloWorldAccount::INIT_SPACE,
-    )]
-    pub hello_world_account: Account<'info, HelloWorldAccount>,
-    pub system_program: Program<'info, System>,
+
+// ============================================
+// STEP 4: Implement the Trait for Tweet
+// ============================================
+// "Tweet now has the Summary trait too"
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("@{}: {}", self.username, self.message)
+    }
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct HelloWorldAccount {
-    #[max_len(32)]
-    pub greeting: String,
+
+// ============================================
+// STEP 5: Generic Function Using the Trait
+// ============================================
+// This function works with ANY type that has Summary
+
+fn print_summary<T: Summary>(item: &T) {
+    // ↑
+    // - fn print_summary = function name
+    // - <T: Summary> = generic type T that MUST have Summary trait
+    // - (item: &T) = parameter of type T (borrowed)
+    
+    println!("{}", item.summarize());
+    // ↑ We can call summarize() because T has Summary trait
+}
+
+
+// ============================================
+// STEP 6: Main Function (Using Everything)
+// ============================================
+fn main() {
+    // Create a NewsArticle
+    let article = NewsArticle {
+        headline: String::from("Rust 2.0 Released"),
+        content: String::from("It's faster and safer"),
+    };
+
+    // Create a Tweet
+    let tweet = Tweet {
+        username: String::from("rustlang"),
+        message: String::from("Rust is awesome!"),
+    };
+
+    // Call summarize directly
+    println!("{}", article.summarize());
+    // Output: Rust 2.0 Released - It's faster and safer
+
+    println!("{}", tweet.summarize());
+    // Output: @rustlang: Rust is awesome!
+
+    // Use the generic function
+    print_summary(&article);
+    // Output: Rust 2.0 Released - It's faster and safer
+
+    print_summary(&tweet);
+    // Output: @rustlang: Rust is awesome!
 }
